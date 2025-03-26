@@ -7,7 +7,6 @@ from typing import Iterator
 
 import numpy as np
 import sphn
-import torch
 import torch.distributed as dist
 
 from finetune.distributed import get_rank

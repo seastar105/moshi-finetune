@@ -121,7 +121,7 @@ def process_one(in_file: Path, out_file: Path,
             continue
         for word in segment["words"]:
             try:
-                chunks.append({"text": word["text"], "timestamp":  (word["start"], word["end"])})
+                chunks.append({"text": word["text"], "timestamp": (word["start"], word["end"])})
             except KeyError:
                 logger.error("Missing key in %s: %r", in_file, word)
                 raise

@@ -39,10 +39,10 @@ class WandbArgs(Serializable):
 
 @dataclass
 class ModelPaths(Serializable):
-    hf_repo_id: str  = "kyutai/moshiko-pytorch-bf16"
+    hf_repo_id: str = "kyutai/moshiko-pytorch-bf16"
     mimi_path: str = "tokenizer-e351c8d8-checkpoint125.safetensors"
-    moshi_path: str  = "model.safetensors"
-    tokenizer_path: str  = "tokenizer_spm_32k_3.model"
+    moshi_path: str = "model.safetensors"
+    tokenizer_path: str = "tokenizer_spm_32k_3.model"
 
     def __post_init__(self) -> None:
         if self.hf_repo_id is not None:
