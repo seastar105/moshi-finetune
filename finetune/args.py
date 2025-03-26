@@ -39,10 +39,10 @@ class WandbArgs(Serializable):
 
 @dataclass
 class ModelPaths(Serializable):
-    hf_repo_id: str  = "kyutai/moshiko-pytorch-bf16"
+    hf_repo_id: str = "kyutai/moshiko-pytorch-bf16"
     mimi_path: str = "tokenizer-e351c8d8-checkpoint125.safetensors"
-    moshi_path: str  = "model.safetensors"
-    tokenizer_path: str  = "tokenizer_spm_32k_3.model"
+    moshi_path: str = "model.safetensors"
+    tokenizer_path: str = "tokenizer_spm_32k_3.model"
 
     def __post_init__(self) -> None:
         if self.hf_repo_id is not None:
@@ -86,7 +86,9 @@ class TrainArgs(Serializable):
     do_eval: bool = False
 
     # Efficiency
-    # Determines whether gradient checkpointing should be utilized or not during the training process. Gradient checkpointing can be beneficial in reducing memory usage at the cost of slightly longer training times.
+    # Determines whether gradient checkpointing should be utilized or not
+    # during the training process. Gradient checkpointing can be beneficial in
+    # reducing memory usage at the cost of slightly longer training times.
     gradient_checkpointing: bool = True
 
     world_size: int | None = field(init=False, default=None)
@@ -114,5 +116,8 @@ class TrainArgs(Serializable):
 
         if not self.save_adapters:
             logging.warning(
-                "You have disabled `save_adapters` and are thus merging the trained LoRA checkpoint into the base model upon checkpointing. This might lead to OOM errors - make sure you have enough CPU and GPU memory."
+                "You have disabled `save_adapters` and are thus merging the "
+                "trained LoRA checkpoint into the base model upon checkpointing. "
+                "This might lead to OOM errors - make sure you have enough CPU "
+                "and GPU memory."
             )

@@ -1,4 +1,4 @@
-# **MOSHI-Finetune** 
+# **Moshi-Finetune** 
 
 ## 🚀 Introduction
 
@@ -6,7 +6,12 @@
   <img src="./moshi_finetune_logo.png" alt="Moshi interface" width="250px" style="margin-left: 20px;">
 </div>
 
-**Moshi-Finetune** provides an easy way to fine-tune [Moshi models](https://kyutai.org/Moshi.pdf) using **LoRA (Low-Rank Adaptation)** for lightweight and efficient training. This guide walks you through installation, model downloading, dataset preparation, training, and inference. By following these steps, you'll be able to: transform stereo audio files into your very own transcribed dataset, fine-tune [Moshi](https://huggingface.co/kyutai/moshiko-pytorch-bf16) on real conversations, and—best of all—chat with your customized Moshi model!
+**Moshi-Finetune** provides an easy way to fine-tune [Moshi models](https://github.com/kyutai-labs/moshi)
+using **LoRA (Low-Rank Adaptation)** for lightweight and efficient training. This guide walks you through
+installation, model downloading, dataset preparation, training, and inference. By following these steps,
+you'll be able to: transform stereo audio files into your very own transcribed dataset, fine-tune
+[moshi weights](https://huggingface.co/kyutai/moshiko-pytorch-bf16) on real conversations, and—best of
+all—chat with your customized moshi model!
 
 ## 📥 Installation
 
@@ -25,7 +30,7 @@ cd moshi-finetune
 pip install -r requirements.txt
 ```
 
-Note that this installs the lora branch of [moshi](https://github.com/kyutai-labs/moshi)
+Note that this installs the `lora` branch of [moshi](https://github.com/kyutai-labs/moshi)
 as the necessary changes have not been merged into the main branch yet.
 
 ## 📥 Model Configuration
@@ -33,8 +38,8 @@ as the necessary changes have not been merged into the main branch yet.
 The training setup is specified via a YAML configuration file. The example
 configuration files are located in the `example` directory.
 
-We recommend fine-tuning one of the official Moshi models. To achieve this, you
-can use the following section in your config file.
+We recommend fine-tuning one of the official moshi models. To achieve this, you
+can use the following section in your configuration file.
 
 ```
 moshi_paths:

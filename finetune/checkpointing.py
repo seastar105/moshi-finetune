@@ -119,8 +119,7 @@ class Checkpointer:
 
             def is_trainable_fsdp(module: torch.nn.Module | FullyShardedDataParallel):
                 is_fsdp = (
-                    isinstance(module, FullyShardedDataParallel)
-                    or get_world_size() == 1
+                    isinstance(module, FullyShardedDataParallel) or get_world_size() == 1
                 )
                 all_params_have_grads = is_fsdp and all(
                     p.requires_grad for p in module.parameters()
@@ -141,8 +140,7 @@ class Checkpointer:
             states = {}
             for key, module in modules.items():
                 assert (
-                    isinstance(module, FullyShardedDataParallel)
-                    or get_world_size() == 1
+                    isinstance(module, FullyShardedDataParallel) or get_world_size() == 1
                 ), (
                     "`module` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
                 )
@@ -185,8 +183,7 @@ class Checkpointer:
 
             # make sure you have enough CPU RAM available to save the full model
             assert (
-                isinstance(self.model, FullyShardedDataParallel)
-                or get_world_size() == 1
+                isinstance(self.model, FullyShardedDataParallel) or get_world_size() == 1
             ), (
                 "`self.model` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
             )
