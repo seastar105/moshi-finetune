@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+    - id: flake8
+      name: flake8
+      language: system
+      entry: bash -c flake8
+      pass_filenames: false
+      always_run: true
