@@ -32,9 +32,12 @@ def main_logger_info(message: str) -> None:
 def get_fsdp_policy(is_lora: bool) -> Callable[[torch.nn.Module], bool]:
     """
     This function instantiates the FSDP wrap policy.
-    - Each Transformers block becomes its own FSDP group so that only a single Transformer block is sharded at a time
-    - If LoRA is enabled, we additionally create separate FSDP sub-groups for every trainable and non-trainable parameter group
-      since this is a requirement for mixed requires_grad=True/False training. See: https://pytorch.org/docs/stable/fsdp.html
+    - Each Transformers block becomes its own FSDP group so that only a single
+      Transformer block is sharded at a time
+    - If LoRA is enabled, we additionally create separate FSDP sub-groups for
+      every trainable and non-trainable parameter group since this is a
+      requirement for mixed requires_grad=True/False training. See:
+      https://pytorch.org/docs/stable/fsdp.html
     """
 
     # Each transformer block becomes a FSDP group, each being sharded separately
@@ -69,7 +72,8 @@ def log_train_params(model: Union[torch.nn.Module, FullyShardedDataParallel]):
     )
 
     main_logger_info(
-        f"{num_train_params:,.0f} out of {num_params:,.0f} parameters are finetuned ({num_train_params / num_params * 100:.2f}%)."
+        f"{num_train_params:,.0f} out of {num_params:,.0f} parameters are finetuned "
+        f"({num_train_params / num_params * 100:.2f}%)."
     )
 
 
@@ -77,7 +81,8 @@ def initialize_lora_parameters(model: torch.nn.Module, param_dtype: torch.dtype)
     """
     Initialize LoRA layers with Kaiming uniform and zeros.
     See original paper for more info: https://arxiv.org/abs/2106.09685 and
-    original github repo: https://github.com/microsoft/LoRA/blob/a0a92e0f26c067cf94747bdbf1ce73793fa44d19/loralib/layers.py#L122
+    original github repo:
+    https://github.com/microsoft/LoRA/blob/a0a92e0f26c067cf94747bdbf1ce73793fa44d19/loralib/layers.py#L122
     """
     for m_name, module in model.named_modules():
         if all(p.is_meta for p in module.parameters()):

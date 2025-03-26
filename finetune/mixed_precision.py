@@ -22,7 +22,10 @@ def prepare_mixed_precision(
 def upcast_mixed_precision(
     params: Iterable[torch.nn.Parameter], optim_dtype: torch.dtype
 ):
-    """Make sure to run this function BEFORE optimizer.step() so that all weights and optimizer states are updated in fp32 in .step()"""
+    """
+    Make sure to run this function BEFORE optimizer.step() so that all weights
+    and optimizer states are updated in fp32 in .step()
+    """
     with torch.no_grad():
         for p in params:
             if p.requires_grad and p.grad is not None:
@@ -36,7 +39,10 @@ def upcast_mixed_precision(
 def downcast_mixed_precision(
     params: Iterable[torch.nn.Parameter], param_dtype: torch.dtype
 ):
-    """Make sure to run this function AFTER optimizer.step() as optimizer.step() will update data underlying p.data and p._mp_param pointers"""
+    """
+    Make sure to run this function AFTER optimizer.step() as optimizer.step()
+    will update data underlying p.data and p._mp_param pointers
+    """
     with torch.no_grad():
         for p in params:
             if p.requires_grad and p.grad is not None:

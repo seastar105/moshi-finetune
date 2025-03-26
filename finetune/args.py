@@ -86,7 +86,9 @@ class TrainArgs(Serializable):
     do_eval: bool = False
 
     # Efficiency
-    # Determines whether gradient checkpointing should be utilized or not during the training process. Gradient checkpointing can be beneficial in reducing memory usage at the cost of slightly longer training times.
+    # Determines whether gradient checkpointing should be utilized or not
+    # during the training process. Gradient checkpointing can be beneficial in
+    # reducing memory usage at the cost of slightly longer training times.
     gradient_checkpointing: bool = True
 
     world_size: int | None = field(init=False, default=None)
@@ -114,5 +116,8 @@ class TrainArgs(Serializable):
 
         if not self.save_adapters:
             logging.warning(
-                "You have disabled `save_adapters` and are thus merging the trained LoRA checkpoint into the base model upon checkpointing. This might lead to OOM errors - make sure you have enough CPU and GPU memory."
+                "You have disabled `save_adapters` and are thus merging the "
+                "trained LoRA checkpoint into the base model upon checkpointing. "
+                "This might lead to OOM errors - make sure you have enough CPU "
+                "and GPU memory."
             )

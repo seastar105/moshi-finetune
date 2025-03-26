@@ -107,7 +107,8 @@ def parse_data_sources(
             weight = float(weight_)
         else:
             raise ValueError(
-                f"{source} is not correctly formatted. Make sure to format each data source as <path/to/data>:<weight> or just <path/to/data>"
+                f"{source} is not correctly formatted. Make sure to format each data source "
+                "as <path/to/data>:<weight> or just <path/to/data>"
             )
 
         assert path_ not in seen, (
@@ -124,7 +125,8 @@ def parse_data_sources(
             data = DataFile(path=Path(path_))
         else:
             raise FileNotFoundError(
-                f"The path {path_} does not exist. Make sure {path_} is either a file or directory that contains training data."
+                f"The path {path_} does not exist. Make sure {path_} is either a file or directory "
+                "that contains training data."
             )
 
         sources.append(data)
