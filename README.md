@@ -162,10 +162,15 @@ Assuming your `lora.safetensors` is saved under `$HOME/dailydialog_ft/checkpoint
 python -m moshi.server --lora-folder=$HOME/dailydialog_ft/checkpoints/checkpoint_000500/consolidated/
 ```
 
-Assuming your `lora.safetensors` is saved under `$HOME/dailydialog_ft/checkpoints/checkpoint_000300/consolidated/lora.safetensors`, and that you want another base model available (in Hugging Face Hub `kyutai/moshiko-pytorch-bf16` for instance), you can discuss with the model using `moshi`, *e.g.*:
+Assuming your `lora.safetensors` is saved under `$HOME/dailydialog_ft/checkpoints/checkpoint_000500/consolidated/lora.safetensors`, and that you want another base model available (in Hugging Face Hub `kyutai/moshiko-pytorch-bf16` for instance), you can discuss with the model using `moshi`, *e.g.*:
 
 ```sh
 python -m moshi.server --lora-weight=$HOME/dailydialog_ft/checkpoints/checkpoint_000500/consolidated/lora.safetensors --hf-repo=kyutai/moshiko-pytorch-bf16
+```
+
+Otherwise, if you have all the weights saved under `$HOME/dailydialog_ft/checkpoints/checkpoint_000500/consolidated/consolidated.safetensors` (either by not checkpointing lora only or using full-finetuning):
+```sh
+python -m moshi.server --moshi-weight=$HOME/dailydialog_ft/checkpoints/checkpoint_000500/consolidated/consolidated.safetensors
 ```
 
 
