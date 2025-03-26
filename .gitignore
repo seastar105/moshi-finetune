@@ -106,9 +106,3 @@ cython_debug/
 
 
 
-
-example/7B*
-example/fisher*
-example/daily*
-train_profiling.py
-finetune/data/interleaver_profiling.py
