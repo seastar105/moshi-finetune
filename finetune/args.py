@@ -3,9 +3,8 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from simple_parsing.helpers import Serializable
-
 from moshi.modules.lora import LoraArgs
+from simple_parsing.helpers import Serializable
 
 from .data.args import DataArgs
 

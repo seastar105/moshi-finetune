@@ -17,6 +17,7 @@ import sentencepiece
 import torch.cuda
 import torch.distributed as dist
 from huggingface_hub import hf_hub_download
+from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
@@ -53,7 +54,6 @@ from finetune.utils import (
     set_random_seed,
 )
 from finetune.wrapped_model import get_fsdp_model
-from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
