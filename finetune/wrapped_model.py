@@ -8,15 +8,14 @@ import safetensors
 import torch
 import torch.distributed.fsdp.wrap as torch_wrap
 from huggingface_hub import hf_hub_download
-from torch.distributed.fsdp import BackwardPrefetch
-from torch.distributed.fsdp.api import ShardingStrategy
-from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
-
 from moshi.models import loaders
 from moshi.models.lm import LMModel
 from moshi.models.loaders import _is_safetensors
 from moshi.modules.lora import replace_all_linear_with_lora
 from moshi.modules.transformer import StreamingTransformerLayer
+from torch.distributed.fsdp import BackwardPrefetch
+from torch.distributed.fsdp.api import ShardingStrategy
+from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
 from .args import TrainArgs
 from .distributed import get_rank, get_world_size

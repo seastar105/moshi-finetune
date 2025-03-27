@@ -8,7 +8,6 @@ from functools import reduce
 import numpy as np
 import sentencepiece
 import torch
-
 from moshi.conditioners import ConditionAttributes
 
 Alignment = tuple[str, tuple[float, float], str]

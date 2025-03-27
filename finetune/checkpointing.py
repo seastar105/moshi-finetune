@@ -5,11 +5,10 @@ from pathlib import Path
 
 import safetensors.torch
 import torch
-from torch.distributed import barrier
-from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
-
 from moshi.models.lm import LMModel
 from moshi.modules.lora import LoRALinear
+from torch.distributed import barrier
+from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
 from .args import TrainArgs
 from .distributed import get_rank, get_world_size
