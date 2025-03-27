@@ -5,12 +5,12 @@ from pathlib import Path
 
 import safetensors.torch
 import torch
-from moshi.models.lm import LMModel
-from moshi.modules.lora import LoRALinear
 from torch.distributed import barrier
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-from .args import TrainArgs
+from moshi.models.lm import LMModel
+from moshi.modules.lora import LoRALinear
+
 from .distributed import get_rank, get_world_size
 from .utils import TrainState
 
@@ -30,7 +30,7 @@ class Checkpointer:
         model: FullyShardedDataParallel | LMModel,
         state: TrainState,
         run_dir: Path | str,
-        args: TrainArgs,
+        config: dict,
         optimizer: torch.optim.Optimizer | None = None,
         num_ckpt_keep: int | None = None,
         full_finetuning: bool = False,
@@ -42,7 +42,7 @@ class Checkpointer:
         self.rank = get_rank()
         self.num_ckpt_keep = num_ckpt_keep
         self.full_finetuning = full_finetuning
-        self.train_args = args
+        self.config = config
 
     @property
     def ckpt_dir(self) -> Path:
@@ -81,10 +81,9 @@ class Checkpointer:
         return ckpts_to_delete
 
     def write_params_info(self, tmp_dst: Path):
-        params_path = tmp_dst / "params.json"
+        params_path = tmp_dst / "config.json"
         with open(params_path, "w") as f:
-            model_args = self.train_args.to_dict()
-            f.write(json.dumps(model_args, indent=4))
+            f.write(json.dumps(self.config, indent=4))
 
     @staticmethod
     def get_lora_states(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
@@ -117,12 +116,8 @@ class Checkpointer:
         if save_only_lora:
 
             def is_trainable_fsdp(module: torch.nn.Module | FullyShardedDataParallel):
-                is_fsdp = (
-                    isinstance(module, FullyShardedDataParallel) or get_world_size() == 1
-                )
-                all_params_have_grads = is_fsdp and all(
-                    p.requires_grad for p in module.parameters()
-                )
+                is_fsdp = (isinstance(module, FullyShardedDataParallel) or get_world_size() == 1)
+                all_params_have_grads = is_fsdp and all(p.requires_grad for p in module.parameters())
 
                 # need to make sure only lowest fsdp wrap is used
                 is_leaf_node = is_fsdp and (
@@ -138,9 +133,7 @@ class Checkpointer:
 
             states = {}
             for key, module in modules.items():
-                assert (
-                    isinstance(module, FullyShardedDataParallel) or get_world_size() == 1
-                ), (
+                assert isinstance(module, FullyShardedDataParallel) or get_world_size() == 1, (
                     "`module` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
                 )
                 parent_prefix = key.replace("_fsdp_wrapped_module.", "").replace(
@@ -181,9 +174,7 @@ class Checkpointer:
                     )
 
             # make sure you have enough CPU RAM available to save the full model
-            assert (
-                isinstance(self.model, FullyShardedDataParallel) or get_world_size() == 1
-            ), (
+            assert isinstance(self.model, FullyShardedDataParallel) or get_world_size() == 1, (
                 "`self.model` should be an instance of `FullyShardedDataParallel` if `world_size > 1`"
             )
             if get_world_size() > 1:

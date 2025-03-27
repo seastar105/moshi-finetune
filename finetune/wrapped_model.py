@@ -8,14 +8,15 @@ import safetensors
 import torch
 import torch.distributed.fsdp.wrap as torch_wrap
 from huggingface_hub import hf_hub_download
+from torch.distributed.fsdp import BackwardPrefetch
+from torch.distributed.fsdp.api import ShardingStrategy
+from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
 from moshi.models import loaders
 from moshi.models.lm import LMModel
 from moshi.models.loaders import _is_safetensors
 from moshi.modules.lora import replace_all_linear_with_lora
 from moshi.modules.transformer import StreamingTransformerLayer
-from torch.distributed.fsdp import BackwardPrefetch
-from torch.distributed.fsdp.api import ShardingStrategy
-from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
 from .args import TrainArgs
 from .distributed import get_rank, get_world_size
@@ -124,8 +125,13 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
         model = loaders.get_moshi_lm(
             filename=None,
             device="meta",
-            empty_init=True,
-            checkpointing=args.gradient_checkpointing,
+            dtype=param_dtype,
+            lm_kwargs_overrides={
+                "gradient_checkpointing": args.gradient_checkpointing,
+                "lora": args.lora.enable,
+                "lora_rank": args.lora.rank,
+                "lora_scaling": args.lora.scaling,
+            },
         )
         if args.lora.enable:
             replace_all_linear_with_lora(model, args.lora.rank, args.lora.scaling)
@@ -135,6 +141,7 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
             moshi_weight = hf_hub_download(
                 args.moshi_paths.hf_repo_id, args.moshi_paths.moshi_path
             )
+
         else:
             moshi_weight = Path(args.moshi_paths.moshi_path)
 

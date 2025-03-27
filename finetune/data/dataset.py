@@ -209,13 +209,15 @@ def get_dataset_iterator(
                 pad_last_segment=True,
             )
             if shuffle_at_epoch:
-                dataset = dataset.shuffle(with_replacement=False, skip=rank, step_by=world_size, seed=seed)
+                dataset = dataset.shuffle(
+                    with_replacement=False, skip=rank, step_by=world_size, seed=seed
+                )
                 seed += 1
             else:
                 dataset = dataset.seq(skip=rank, step_by=world_size)
             for sample in dataset:
-                wav = sample['data'][..., :sample['unpadded_len']]
-                yield instruct_tokenizer(wav, sample['start_time_sec'], sample['path'])
+                wav = sample["data"][..., : sample["unpadded_len"]]
+                yield instruct_tokenizer(wav, sample["start_time_sec"], sample["path"])
         if is_finite:
             break
         print(f"Rank {rank} finished epoch {epoch}")

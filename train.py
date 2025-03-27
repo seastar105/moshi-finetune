@@ -1,16 +1,22 @@
 import dataclasses
+import json
 import logging
 import os
 import pprint
+import warnings
 from contextlib import ExitStack
 from pathlib import Path
+
+try:
+    from huggingface_hub.errors import EntryNotFoundError
+except ImportError:
+    from huggingface_hub.utils import EntryNotFoundError  # pyright: ignore
 
 import fire
 import sentencepiece
 import torch.cuda
 import torch.distributed as dist
 from huggingface_hub import hf_hub_download
-from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
@@ -47,6 +53,7 @@ from finetune.utils import (
     set_random_seed,
 )
 from finetune.wrapped_model import get_fsdp_model
+from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
@@ -65,10 +72,7 @@ def train(config: str):
     logger.info("Closed everything!")
 
 
-def _train(
-    args: TrainArgs,
-    exit_stack: ExitStack,
-):
+def _train(args: TrainArgs, exit_stack: ExitStack):  # noqa: C901
     # 1. Initial setup and checks
     set_random_seed(args.seed)
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -135,9 +139,36 @@ def _train(
         tokenizer_path = hf_hub_download(
             args.moshi_paths.hf_repo_id, args.moshi_paths.tokenizer_path
         )
+        try:
+            config_path = hf_hub_download(args.moshi_paths.hf_repo_id, "config.json")
+        except EntryNotFoundError:
+            config_path = None
+            # No config.json, which might indicate legacy repository.
+            warnings.warn(
+                f"Repository {args.moshi_paths.hf_repo_id} contains no config.json. "
+                "Assuming this is a Moshi 7B. Support for such repository "
+                "might be removed in the future."
+            )
+
+        lm_config = (
+            loaders._lm_kwargs
+            if config_path is None
+            else dict(json.loads(Path(config_path).read_text()))
+        )
     else:
         mimi_weight = Path(args.moshi_paths.mimi_path)
         tokenizer_path = Path(args.moshi_paths.tokenizer_path)
+        assert (Path(args.moshi_paths.moshi_path).parent / "config.json").exists(), (
+            "config.json should exist"
+        )
+        lm_config = json.loads(
+            (Path(args.moshi_paths.moshi_path).parent / "config.json").read_text()
+        )
+
+    lm_config["lora"] = args.lora.enable
+    lm_config["lora_rank"] = args.lora.rank
+    lm_config["lora_scaling"] = args.lora.scaling
+    lm_config["gradient_checkpointing"] = args.gradient_checkpointing
 
     mimi = loaders.get_mimi(mimi_weight, device="cuda")
     mimi = mimi.to("cuda")
@@ -214,7 +245,7 @@ def _train(
         checkpointer = Checkpointer(
             model=model,
             state=state,
-            args=args,
+            config=lm_config,
             run_dir=run_dir,
             optimizer=optimizer,
             num_ckpt_keep=args.num_ckpt_keep,

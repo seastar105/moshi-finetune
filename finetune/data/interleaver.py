@@ -8,6 +8,7 @@ from functools import reduce
 import numpy as np
 import sentencepiece
 import torch
+
 from moshi.conditioners import ConditionAttributes
 
 Alignment = tuple[str, tuple[float, float], str]
@@ -254,12 +255,13 @@ class InterleavedTokenizer:
         with torch.no_grad():
             audio_tensor = torch.Tensor(wav).cuda()
             audio_tokens = self.mimi.encode(audio_tensor[:, None])
-            audio_tokens = audio_tokens[..., :self.num_audio_frames]
+            audio_tokens = audio_tokens[..., : self.num_audio_frames]
             this_num_audio_frames = audio_tokens.shape[-1]
             audio_tokens = torch.nn.functional.pad(
-                audio_tokens[..., :self.num_audio_frames],
+                audio_tokens[..., : self.num_audio_frames],
                 (0, self.num_audio_frames - this_num_audio_frames),
-                value=self.interleaver.zero_padding)
+                value=self.interleaver.zero_padding,
+            )
             audio_tokens = audio_tokens.view(1, -1, self.num_audio_frames)
 
             info_file = os.path.splitext(path)[0] + ".json"
@@ -274,7 +276,9 @@ class InterleavedTokenizer:
                 for a in alignments[start_alignment:end_alignment]
             ]
 
-            text_tokens = self.interleaver.prepare_item(alignments, this_num_audio_frames)
+            text_tokens = self.interleaver.prepare_item(
+                alignments, this_num_audio_frames
+            )
             text_tokens = torch.nn.functional.pad(
                 text_tokens,
                 (0, self.num_audio_frames - text_tokens.shape[-1]),
