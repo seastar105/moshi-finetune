@@ -104,8 +104,8 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
             - param_dtype: The data type for model parameters (e.g., "bfloat16", "float32").
             - gradient_checkpointing: Whether to enable gradient checkpointing.
             - lora: Configuration for LoRA fine-tuning, including enabling, rank, and scaling.
-            - moshi_paths: Paths to model weights, including HF repository ID and local paths.
             - full_finetuning: Whether to enable full model fine-tuning or only LoRA fine-tuning.
+        checkpointer_info: provide the initial checkpoint to train from.
     Notes:
         - The function uses meta-device initialization for memory efficiency.
         - Then parameters are initialized on the first GPU (rank=0) only.
@@ -140,7 +140,7 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
         for k, v in model_state_dict.items():
             model_state_dict[k] = v.to(param_dtype)
 
-        model.load_state_dict(model_state_dict, assign=True)
+        model.load_state_dict(model_state_dict, strict=False, assign=True)
 
         if args.lora.enable and not args.full_finetuning:
             logger.info("Initializing lora layers ...")
