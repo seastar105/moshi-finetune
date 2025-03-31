@@ -38,7 +38,7 @@ def load_file(path: Path, world_size: int, rank: int) -> list[str]:
 def maybe_load_local_dataset(
     path: Path, rank: int, world_size: int, instruct_tokenizer: InterleavedTokenizer
 ) -> list[AudioChunkPath]:
-    global _LOADED_DATASETS  # noqa F824
+    global _LOADED_DATASETS
 
     if path in _LOADED_DATASETS:
         return _LOADED_DATASETS[path]
