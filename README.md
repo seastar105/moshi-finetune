@@ -67,7 +67,7 @@ import sphn
 import json
 from pathlib import Path
 
-paths = [ str(f) for f in Path("wav-dir").glob("*.wav")]
+paths = [str(f) for f in Path("wav-dir").glob("*.wav")]
 durations = sphn.durations(paths)
 with open("data.jsonl", "w") as fobj:
     for p, d in zip(paths, durations):
