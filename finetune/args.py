@@ -13,6 +13,7 @@ class LoraArgs(Serializable):
     enable: bool = False
     rank: int = 64
     scaling: float = 2.0
+    ft_embed: bool = False
 
     def __post_init__(self) -> None:
         if self.enable:
@@ -49,20 +50,17 @@ class WandbArgs(Serializable):
 
 @dataclass
 class ModelPaths(Serializable):
-    hf_repo_id: str = "kyutai/moshiko-pytorch-bf16"
-    mimi_path: str = "tokenizer-e351c8d8-checkpoint125.safetensors"
-    moshi_path: str = "model.safetensors"
-    tokenizer_path: str = "tokenizer_spm_32k_3.model"
+    hf_repo_id: str | None = "kyutai/moshiko-pytorch-bf16"
+    mimi_path: str | None = None
+    moshi_path: str | None = None
+    tokenizer_path: str | None = None
+    config_path: str | None = None
 
     def __post_init__(self) -> None:
-        if self.hf_repo_id is not None:
-            assert self.mimi_path is not None
-            assert self.moshi_path is not None
-            assert self.tokenizer_path is not None
-        else:
-            assert Path(self.mimi_path).exists()
-            assert Path(self.moshi_path).exists()
-            assert Path(self.tokenizer_path).exists()
+        if self.hf_repo_id is not None and self.config_path is None:
+            print(
+                "Warning: `hf_repo_id` is set but `config_path` is None. "
+                "This will load default models.")
 
 
 @dataclass

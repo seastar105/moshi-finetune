@@ -7,9 +7,6 @@ data:
 # model
 moshi_paths: 
   hf_repo_id: "kyutai/moshiko-pytorch-bf16"
-  mimi_path: "tokenizer-e351c8d8-checkpoint125.safetensors"
-  moshi_path: "model.safetensors"
-  tokenizer_path: "tokenizer_spm_32k_3.model"
 
 full_finetuning: false # Activate lora.enable if partial finetuning
 lora:

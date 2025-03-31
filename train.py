@@ -17,7 +17,6 @@ import sentencepiece
 import torch.cuda
 import torch.distributed as dist
 from huggingface_hub import hf_hub_download
-from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
@@ -54,6 +53,7 @@ from finetune.utils import (
     set_random_seed,
 )
 from finetune.wrapped_model import get_fsdp_model
+from moshi.models import loaders
 
 logger = logging.getLogger("train")
 
@@ -132,53 +132,33 @@ def _train(args: TrainArgs, exit_stack: ExitStack):  # noqa: C901
     exit_stack.enter_context(logged_closing(eval_logger, "eval_logger"))
 
     # 4.1 Load function calling audio encoder and tokenizer
-    if args.moshi_paths.hf_repo_id is not None:
-        mimi_weight = hf_hub_download(
-            args.moshi_paths.hf_repo_id, args.moshi_paths.mimi_path
-        )
-        tokenizer_path = hf_hub_download(
-            args.moshi_paths.hf_repo_id, args.moshi_paths.tokenizer_path
-        )
-        try:
-            config_path = hf_hub_download(args.moshi_paths.hf_repo_id, "config.json")
-        except EntryNotFoundError:
-            config_path = None
-            # No config.json, which might indicate legacy repository.
-            warnings.warn(
-                f"Repository {args.moshi_paths.hf_repo_id} contains no config.json. "
-                "Assuming this is a Moshi 7B. Support for such repository "
-                "might be removed in the future."
-            )
+    main_logger_info("Loading Mimi and Moshi...")
+    checkpoint_info = loaders.CheckpointInfo.from_hf_repo(
+        hf_repo=args.moshi_paths.hf_repo_id,
+        moshi_weights=args.moshi_paths.moshi_path,
+        mimi_weights=args.moshi_paths.mimi_path,
+        tokenizer=args.moshi_paths.tokenizer_path,
+        config_path=args.moshi_paths.config_path,
+    )
 
-        lm_config = (
-            loaders._lm_kwargs
-            if config_path is None
-            else dict(json.loads(Path(config_path).read_text()))
-        )
-    else:
-        mimi_weight = Path(args.moshi_paths.mimi_path)
-        tokenizer_path = Path(args.moshi_paths.tokenizer_path)
-        assert (Path(args.moshi_paths.moshi_path).parent / "config.json").exists(), (
-            "config.json should exist"
-        )
-        lm_config = json.loads(
-            (Path(args.moshi_paths.moshi_path).parent / "config.json").read_text()
-        )
-
+    lm_config = (
+        loaders._lm_kwargs
+        if checkpoint_info.raw_config is None
+        else checkpoint_info.raw_config
+    )
     lm_config["lora"] = args.lora.enable
     lm_config["lora_rank"] = args.lora.rank
     lm_config["lora_scaling"] = args.lora.scaling
 
-    mimi = loaders.get_mimi(mimi_weight, device="cuda")
-    mimi = mimi.to("cuda")
+    mimi = checkpoint_info.get_mimi(device="cuda")
     mimi.eval()
     for p in mimi.parameters():
         p.requires_grad = False
 
     # 4.2 Load and shard model, prepare interleaver for audio/text tokens.
-    model = get_fsdp_model(args)
+    model = get_fsdp_model(args, checkpoint_info)
 
-    spm = sentencepiece.SentencePieceProcessor(str(tokenizer_path))
+    spm = checkpoint_info.get_text_tokenizer()
 
     interleaver = Interleaver(
         spm,

@@ -3,7 +3,7 @@
 ## 🚀 Introduction
 
 <div style="text-align: center;">
-  <img src="./moshi_finetune_logo.png" alt="Moshi interface" width="250px" style="margin-left: 20px;">
+  <img src="./images/moshi_finetune_logo.png" alt="Moshi interface" width="250px" style="margin-left: 20px;">
 </div>
 
 **Moshi-Finetune** provides an easy way to fine-tune [Moshi models](https://github.com/kyutai-labs/moshi)
@@ -30,9 +30,6 @@ cd moshi-finetune
 pip install -r requirements.txt
 ```
 
-Note that this installs the `lora` branch of [moshi](https://github.com/kyutai-labs/moshi)
-as the necessary changes have not been merged into the main branch yet.
-
 ## 📥 Model Configuration
 
 The training setup is specified via a YAML configuration file. The example
@@ -44,9 +41,6 @@ can use the following section in your configuration file.
 ```
 moshi_paths:
    hf_repo_id: str  = "kyutai/moshiko-pytorch-bf16"
-   mimi_path: str = "tokenizer-e351c8d8-checkpoint125.safetensors"
-   moshi_path: str  = "model.safetensors"
-   tokenizer_path: str  = "tokenizer_spm_32k_3.model"
 ```
 
 ## 📚 Prepare Dataset
@@ -107,8 +101,8 @@ Using the above hyperparameters:
 
 |  | Avg Tokens/sec   | Peak Allocated Memory   |
 |------|------|------|
-|   1×H100  | ≈17k| 39.6GB |
-|   8×H100  | ≈15.2k| 23.7GB |
+|   1×H100  | ≈12k| 39.6GB |
+|   8×H100  | ≈10.7k| 23.7GB |
 
 
 
@@ -123,7 +117,7 @@ customize these settings for your use case.
 ### **🔧 Key Training Parameters**
 | Parameter              | Description |
 |------------------------|-------------|
-| `moshi_paths`         | Defines all the paths: `.hf_repo_id` if the model is imported from Hugging Face Hub (+ models' names instead of path), or directly `.mimi_path` and `.moshi_path` for local weights. `.tokenizer_path` must also be specified. |
+| `moshi_paths`         | Defines all the paths: `.hf_repo_id` if the model is imported from Hugging Face Hub ( `.hf_repo_id` enables to change default settings), for more information take a look at [Moshi loading](https://github.com/kyutai-labs/moshi/blob/main/moshi/moshi/models/loaders.py). |
 | `run_dir`             | Directory where training checkpoints and logs are stored. |
 | `duration_sec`        | Maximum sequence length (in seconds) for training. |
 | `first_codebook_weight_multiplier` | The first codebook being the semantic token, we put more weight on it. | 
@@ -135,6 +129,7 @@ customize these settings for your use case.
 | `optim.weight_decay` | Weight decay for regularization. Default: **0.1**. |
 | `optim.pct_start`   | Percentage of total training steps used for learning rate warm-up before decay. Equivalent to `pct_start` in PyTorch’s `OneCycleLR`. |
 | `lora.rank`         | Size of the **LoRA adapters**. Recommended **≤128** for efficiency. |
+| `lora.ft_embed`     | Whether to full-finetune embedding matrices while fine-tuning with LoRA all the other linear layers. | 
 | `seed`              | Random seed for initialization, data shuffling, and sampling (ensures reproducibility). |
 | `log_freq`          | Defines how often (in steps) training metrics are logged. |
 | `data.train_data`   | Path to the dataset used for training. |
@@ -149,6 +144,11 @@ customize these settings for your use case.
 | `wandb.project`  | Name of the **wandb project** where training logs will be stored. |
 
 
+<figure style="text-align: center;">
+  <img src="./images/train_curve_example.png" alt="Training curves" width="2000px" style="margin-left: 20px;">
+  <figcaption>Figure 1: Training curves over steps on dailytalk dataset using a maximal learning rate of 4e-6.</figcaption>
+</figure>
+
 ## 🔮 Inference
 
 #### 1️⃣ Install Moshi for inference
@@ -157,7 +157,7 @@ Once your model is trained, you can use it in interactive mode using [moshi](htt
 The package should already be in your environment if you used the
 `requirements.txt` file. If not, you can install it using the following command:
 ```sh
-pip install -U -e "git+https://github.com/kyutai-labs/moshi.git@lora#egg=moshi&subdirectory=moshi"
+pip install -U -e "git+https://git@github.com/kyutai-labs/moshi.git#egg=moshi&subdirectory=moshi"
 ```
 
 #### 2️⃣ Run inference using the fine-tuned model

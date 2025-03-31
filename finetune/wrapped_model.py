@@ -8,13 +8,14 @@ import safetensors
 import torch
 import torch.distributed.fsdp.wrap as torch_wrap
 from huggingface_hub import hf_hub_download
-from moshi.models import loaders
-from moshi.models.lm import LMModel
-from moshi.models.loaders import _is_safetensors
-from moshi.modules.transformer import StreamingTransformerLayer
 from torch.distributed.fsdp import BackwardPrefetch
 from torch.distributed.fsdp.api import ShardingStrategy
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
+
+from moshi.models import loaders
+from moshi.models.lm import LMModel
+from moshi.models.loaders import _is_safetensors, CheckpointInfo
+from moshi.modules.transformer import StreamingTransformerLayer
 
 from .args import TrainArgs
 from .distributed import get_rank, get_world_size
@@ -98,7 +99,7 @@ def initialize_lora_parameters(model: torch.nn.Module, param_dtype: torch.dtype)
                     raise ValueError("Only Lora layers should be randomly initialized.")
 
 
-def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
+def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyShardedDataParallel | LMModel:
     """
     Initializes and returns a FullyShardedDataParallel (FSDP) LMModel or a non sharded LMModel if one GPU available.
     Args:
@@ -120,8 +121,8 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
         param_dtype = torch.float32
 
     with torch.device("meta"):
-        model = loaders.get_moshi_lm(
-            filename=None,
+        model = checkpointer_info.get_moshi(
+            empty_init=True,
             device="meta",
             dtype=param_dtype,
             lm_kwargs_overrides={
@@ -133,13 +134,7 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
         )
 
     if get_rank() == 0:
-        if args.moshi_paths.hf_repo_id is not None:
-            moshi_weight = hf_hub_download(
-                args.moshi_paths.hf_repo_id, args.moshi_paths.moshi_path
-            )
-
-        else:
-            moshi_weight = Path(args.moshi_paths.moshi_path)
+        moshi_weight = checkpointer_info.moshi_weights
 
         assert _is_safetensors(moshi_weight), "Model is not safetensors"
         model_state_dict = safetensors.torch.load_file(moshi_weight)
@@ -181,6 +176,8 @@ def get_fsdp_model(args: TrainArgs) -> FullyShardedDataParallel | LMModel:
     if args.lora.enable and not args.full_finetuning:
         for name, param in model.named_parameters():
             if "lora" in name:
+                param.requires_grad = True
+            elif args.lora.ft_embed and "emb" in name:
                 param.requires_grad = True
             else:
                 param.requires_grad = False

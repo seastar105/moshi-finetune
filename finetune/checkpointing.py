@@ -85,10 +85,6 @@ class Checkpointer:
             f.write(json.dumps(self.config, indent=4))
 
     @staticmethod
-    def get_lora_states(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        return {k: v for k, v in state_dict.items() if "lora" in k}
-
-    @staticmethod
     def get_non_lora_states(
         state_dict: dict[str, torch.Tensor],
     ) -> dict[str, torch.Tensor]:
