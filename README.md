@@ -54,6 +54,22 @@ Each line having a `path` and a `duration` field. The duration is given in
 seconds. Each audio file should have an associated `.json` file that contains
 the transcript with timestamps.
 
+The `.jsonl` file can be generated with the snippet below, this will include
+all the wav files in a given directory.
+```python
+import sphn
+import json
+from pathlib import Path
+
+paths = [str(f) for f in Path("wav-dir").glob("*.wav")]
+durations = sphn.durations(paths)
+with open("data.jsonl", "w") as fobj:
+    for p, d in zip(paths, durations):
+        if d is None: continue
+        json.dump({"path": p, "duration": d}, fobj)
+        fobj.write("\n")
+```
+
 A sample dataset in this format can be found in the
 [kyutai/DailyTalkContiguous](https://huggingface.co/datasets/kyutai/DailyTalkContiguous)
 repository. This dataset can be retrieved using the following snippet:
