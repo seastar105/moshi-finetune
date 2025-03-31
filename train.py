@@ -8,6 +8,7 @@ from pathlib import Path
 import fire
 import torch.cuda
 import torch.distributed as dist
+from moshi.models import loaders
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
@@ -40,7 +41,6 @@ from finetune.monitoring.metrics_logger import (
 from finetune.monitoring.utils import set_logger
 from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
-from moshi.models import loaders
 
 logger = logging.getLogger("train")
 

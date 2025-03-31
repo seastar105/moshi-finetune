@@ -6,13 +6,12 @@ from typing import Callable, Union
 import safetensors
 import torch
 import torch.distributed.fsdp.wrap as torch_wrap
-from torch.distributed.fsdp import BackwardPrefetch
-from torch.distributed.fsdp.api import ShardingStrategy
-from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
-
 from moshi.models.lm import LMModel
 from moshi.models.loaders import CheckpointInfo, _is_safetensors
 from moshi.modules.transformer import StreamingTransformerLayer
+from torch.distributed.fsdp import BackwardPrefetch
+from torch.distributed.fsdp.api import ShardingStrategy
+from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
 from .args import TrainArgs
 from .distributed import get_rank, get_world_size
