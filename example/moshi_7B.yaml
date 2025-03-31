@@ -13,6 +13,7 @@ lora:
   enable: true # Set to False if full_finetuning is True
   rank: 128
   scaling: 2.
+  ft_embed: false # Optional, set to True if you want to finetune the embedding layer
 
 first_codebook_weight_multiplier: 100.
 text_padding_weight: .5
