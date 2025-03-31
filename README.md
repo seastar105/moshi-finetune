@@ -1,5 +1,9 @@
 # **Moshi-Finetune** 
 
+<a target="_blank" href="https://colab.research.google.com/github//kyutai-labs/moshi-finetune/blob/main/tutorials/moshi_finetune.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
 ## 🚀 Introduction
 
 <div style="text-align: center;">
