@@ -1,22 +1,13 @@
 import dataclasses
-import json
 import logging
 import os
 import pprint
-import warnings
 from contextlib import ExitStack
 from pathlib import Path
 
-try:
-    from huggingface_hub.errors import EntryNotFoundError
-except ImportError:
-    from huggingface_hub.utils import EntryNotFoundError  # pyright: ignore
-
 import fire
-import sentencepiece
 import torch.cuda
 import torch.distributed as dist
-from huggingface_hub import hf_hub_download
 from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
@@ -72,7 +63,7 @@ def train(config: str):
     logger.info("Closed everything!")
 
 
-def _train(args: TrainArgs, exit_stack: ExitStack):  # noqa: C901
+def _train(args: TrainArgs, exit_stack: ExitStack):
     # 1. Initial setup and checks
     set_random_seed(args.seed)
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"

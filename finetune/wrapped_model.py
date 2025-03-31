@@ -1,20 +1,17 @@
 import functools
 import logging
 import math
-from pathlib import Path
 from typing import Callable, Union
 
 import safetensors
 import torch
 import torch.distributed.fsdp.wrap as torch_wrap
-from huggingface_hub import hf_hub_download
 from torch.distributed.fsdp import BackwardPrefetch
 from torch.distributed.fsdp.api import ShardingStrategy
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
 
-from moshi.models import loaders
 from moshi.models.lm import LMModel
-from moshi.models.loaders import _is_safetensors, CheckpointInfo
+from moshi.models.loaders import CheckpointInfo, _is_safetensors
 from moshi.modules.transformer import StreamingTransformerLayer
 
 from .args import TrainArgs
