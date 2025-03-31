@@ -119,7 +119,6 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
 
     with torch.device("meta"):
         model = checkpointer_info.get_moshi(
-            empty_init=True,
             device="meta",
             dtype=param_dtype,
             lm_kwargs_overrides={
@@ -128,6 +127,7 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
                 "lora_rank": args.lora.rank,
                 "lora_scaling": args.lora.scaling,
             },
+            load_weight=False,
         )
 
     if get_rank() == 0:
