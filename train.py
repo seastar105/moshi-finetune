@@ -38,11 +38,7 @@ from finetune.monitoring.metrics_logger import (
     train_log_msg,
 )
 from finetune.monitoring.utils import set_logger
-from finetune.utils import (
-    TrainState,
-    logged_closing,
-    set_random_seed,
-)
+from finetune.utils import TrainState, logged_closing, set_random_seed
 from finetune.wrapped_model import get_fsdp_model
 from moshi.models import loaders
 

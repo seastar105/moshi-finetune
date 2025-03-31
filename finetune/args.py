@@ -59,7 +59,8 @@ class ModelPaths(Serializable):
         if self.hf_repo_id is not None and self.config_path is None:
             print(
                 "Warning: `hf_repo_id` is set but `config_path` is None. "
-                "This will load default models.")
+                "This will load default models."
+            )
 
 
 @dataclass
