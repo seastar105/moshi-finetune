@@ -276,7 +276,7 @@ class InterleavedTokenizer:
             ]
 
             text_tokens = self.interleaver.prepare_item(
-                alignments, this_num_audio_frames
+                alignments, self.duration_sec
             )
             text_tokens = torch.nn.functional.pad(
                 text_tokens,
