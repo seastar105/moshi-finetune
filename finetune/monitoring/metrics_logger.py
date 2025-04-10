@@ -23,6 +23,8 @@ def get_train_logs(
     peak_allocated_mem: float,
     allocated_mem: float,
     train_args: TrainArgs,
+    audio_loss: float | None = None,
+    text_loss: float | None = None,
 ) -> dict[str, float | int]:
     metrics = {
         "lr": lr,
@@ -36,6 +38,10 @@ def get_train_logs(
         "avg_wps": state.avg_wps,
         "eta_in_seconds": state.eta,
     }
+    if audio_loss is not None:
+        metrics["audio_loss"] = audio_loss
+    if text_loss is not None:
+        metrics["text_loss"] = text_loss
 
     return metrics
 
@@ -78,6 +84,8 @@ def train_log_msg(state: TrainState, logs: dict[str, float | int], loss: float) 
         ("step", "06", None),
         ("percent_done", "03.1f", "done (%)"),
         ("loss", ".3f", None),
+        ("audio_loss", ".3f", None),
+        ("text_loss", ".3f", None),
         ("lr", ".1e", None),
         ("peak_allocated_mem", ".1f", "peak_alloc_mem (GB)"),
         ("allocated_mem", ".1f", "alloc_mem (GB)"),
@@ -89,6 +97,8 @@ def train_log_msg(state: TrainState, logs: dict[str, float | int], loss: float) 
         try:
             parts.append(f"{name}: {metrics[key]:>{fmt}}")
         except KeyError:
+            if key == "audio_loss" or key == "text_loss":
+                continue
             logger.error(f"{key} not found in {sorted(metrics.keys())}")
             raise
 

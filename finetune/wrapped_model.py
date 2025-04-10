@@ -175,6 +175,8 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
                 param.requires_grad = True
             elif args.lora.ft_embed and "emb" in name:
                 param.requires_grad = True
+            elif args.lora.ft_head and "text_linear" in name:
+                param.requires_grad = True
             else:
                 param.requires_grad = False
     else:

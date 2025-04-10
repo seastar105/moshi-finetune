@@ -13,6 +13,7 @@ class LoraArgs(Serializable):
     rank: int = 64
     scaling: float = 2.0
     ft_embed: bool = False
+    ft_head: bool = False
 
     def __post_init__(self) -> None:
         if self.enable:
