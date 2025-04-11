@@ -9,6 +9,7 @@ import torch.distributed.fsdp.wrap as torch_wrap
 from moshi.models.lm import LMModel
 from moshi.models.loaders import CheckpointInfo, _is_safetensors
 from moshi.modules.transformer import StreamingTransformerLayer
+from moshi.modules.lora import LoRALinear
 from torch.distributed.fsdp import BackwardPrefetch
 from torch.distributed.fsdp.api import ShardingStrategy
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullyShardedDataParallel
@@ -128,6 +129,17 @@ def get_fsdp_model(args: TrainArgs, checkpointer_info: CheckpointInfo) -> FullyS
             },
             load_weight=False,
         )
+        if args.lora.enable and not args.full_finetuning and args.lora.ft_head:
+            # rollback text linear
+            assert isinstance(model.text_linear, LoRALinear)
+            frozen_linear = model.text_linear.frozen_W
+            model.text_linear = torch.nn.Linear(
+                frozen_linear.in_features,
+                frozen_linear.out_features,
+                bias=False,
+                device=torch.device("meta"),
+                dtype=frozen_linear.weight.dtype,
+            )
 
     if get_rank() == 0:
         moshi_weight = checkpointer_info.moshi_weights
