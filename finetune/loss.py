@@ -11,7 +11,7 @@ def compute_loss_with_mask(
     text_padding_weight: float = 1.0,
     text_padding_ids: set[int] | None = None,
 ):
-    target = torch.where(target_mask, target, torch.zeros_like(target))
+    # target = torch.where(target_mask, target, torch.zeros_like(target))
 
     weights = target_mask.float()
     if mode == "audio":
@@ -21,9 +21,9 @@ def compute_loss_with_mask(
         for id in text_padding_ids:
             weights[target == id] *= text_padding_weight
 
-    logits = logits.view(-1, logits.size(-1)).float()
-    target = target.view(-1)
-    weights = weights.view(-1)
+    logits = logits[target_mask].float()
+    target = target[target_mask]
+    weights = weights[target_mask]
     mb_loss = F.cross_entropy(logits, target, reduction="none")
     mb_loss = torch.where(weights > 0.0, mb_loss * weights, torch.zeros_like(mb_loss))
     mb_loss = torch.sum(mb_loss) / torch.sum(weights)

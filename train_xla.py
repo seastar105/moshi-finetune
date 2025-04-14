@@ -68,6 +68,7 @@ import numpy as np
 import safetensors
 import torch
 import torch.nn as nn
+import torch_xla
 import torch_xla.core.xla_model as xm
 import torch_xla.distributed.fsdp.xla_fully_sharded_data_parallel as fsdp_internal
 from datasets import load_dataset
@@ -91,7 +92,6 @@ import moshi.models.loaders
 importlib.reload(moshi.models.loaders)
 
 logger = logging.getLogger("train")
-
 
 def rank_print(fabric: L.Fabric, message: object, *, flush: bool = True, **kwargs: Any) -> None:
     if fabric.local_rank == 0:
@@ -196,20 +196,19 @@ class PreComputedDataset:
             ch0 = np.array(item["channel0"])        # (T, 9)
             ch1 = np.array(item["channel1"])        # (T, 9)
             T = ch0.shape[0]
-            for offset in range(0, T, self.max_seq_len):
-                if offset + self.max_seq_len > T:
-                    break
-                main_channel = rng.choice([0, 1])
-                if main_channel == 0:
-                    codes = np.concatenate([ch0[offset : offset + self.max_seq_len], ch1[offset : offset + self.max_seq_len, 1:]], axis=1)
-                else:
-                    codes = np.concatenate([ch1[offset : offset + self.max_seq_len], ch0[offset : offset + self.max_seq_len, 1:]], axis=1)
-                # (B, K, T) shape
-                codes = codes.T
-                yield torch.from_numpy(codes).long().view(1, -1, self.max_seq_len)
+            offset = rng.integers(0, T - self.max_seq_len + 1)
+            main_channel = rng.choice([0, 1])
+            if main_channel == 0:
+                codes = np.concatenate([ch0[offset : offset + self.max_seq_len], ch1[offset : offset + self.max_seq_len, 1:]], axis=1)
+            else:
+                codes = np.concatenate([ch1[offset : offset + self.max_seq_len], ch0[offset : offset + self.max_seq_len, 1:]], axis=1)
+            # (B, K, T) shape
+            codes = codes.T
+            yield torch.from_numpy(codes).long().view(1, -1, self.max_seq_len)
 
 def train(fabric: L.Fabric, args: TrainArgs) -> None:
     fabric.seed_everything(args.seed)
+    set_logger(logging.INFO)
     rank_print(fabric, "Loading and Moshi...")
     checkpoint_info = loaders.CheckpointInfo.from_hf_repo(
         hf_repo=args.moshi_paths.hf_repo_id,
@@ -226,13 +225,15 @@ def train(fabric: L.Fabric, args: TrainArgs) -> None:
         )
     moshi_weight = checkpoint_info.moshi_weights
     model_state_dict = safetensors.torch.load_file(moshi_weight)
+
+    logger.info(rank_prefixed_message(f"Converting model to dtype {torch.float32} ...", fabric.global_rank))
+
     for k, v in model_state_dict.items():
         model_state_dict[k] = v.to(torch.float32)
-    model.load_state_dict(model_state_dict, strict=True, assign=True)
-    model = fabric.setup_module(model)
 
-    # if args.param_dtype == "bfloat16":
-    #     model = model.to(torch.bfloat16)
+    model.load_state_dict(model_state_dict, strict=True, assign=True)
+    fabric.barrier()
+    model = fabric.setup_module(model)
 
     rank_print(fabric, f"Number of trainable parameters: {num_parameters(model, requires_grad=True):,}")
     rank_print(fabric, f"Number of non-trainable parameters: {num_parameters(model, requires_grad=False):,}")
@@ -275,15 +276,16 @@ def train(fabric: L.Fabric, args: TrainArgs) -> None:
                     sample_list = []
 
     data_loader = wrap_dataset(dataset, args.batch_size)
-    fabric.seed_everything(998244353 + fabric.global_rank)
+    fabric.seed_everything(args.seed + fabric.global_rank)
     model.train()
     xm.mark_step()
 
     for step in range(args.max_steps):
         batch = next(data_loader)
         codes = fabric.to_device(batch.codes)
+        
         output = model(codes=codes, condition_tensors=None)
-        # xm.mark_step()
+        xm.mark_step()
 
         text_loss = compute_loss_with_mask(
             output.text_logits,
@@ -304,7 +306,7 @@ def train(fabric: L.Fabric, args: TrainArgs) -> None:
             first_codebook_weight_multiplier=args.first_codebook_weight_multiplier,
         )
         mb_loss = text_loss + audio_loss
-        # xm.mark_step()
+        xm.mark_step()
         fabric.backward(mb_loss)
 
         fabric.clip_gradients(model, optimizer, max_norm=args.max_norm)
@@ -322,7 +324,8 @@ def train(fabric: L.Fabric, args: TrainArgs) -> None:
         avg_text_loss_item = xm.all_reduce("sum", text_loss_item).item() / fabric.world_size
         avg_audio_loss_item = xm.all_reduce("sum", audio_loss_item).item() / fabric.world_size
 
-        rank_print(fabric, f"Step {step + 1}: loss: {avg_loss_item:.4f}, text_loss: {avg_text_loss_item:.4f}, audio_loss: {avg_audio_loss_item:.4f}, lr: {last_lr:.6e}")
+        if fabric.is_global_zero:
+            logger.info(f"Step {step + 1}: loss: {avg_loss_item:.4f}, text_loss: {avg_text_loss_item:.4f}, audio_loss: {avg_audio_loss_item:.4f}, lr: {last_lr:.6e}")
 
 
 def main(config: str):
@@ -336,8 +339,8 @@ def main(config: str):
             activation_checkpointing_policy={StreamingTransformerLayer},
             state_dict_type="sharded",  # change to "sharded" in multi-host environments where the filesystem is not shared
             sequential_save=True,
-            # buffer_dtype=torch.float32,
-            # fp32_reduce_scatter=True,
+            buffer_dtype=torch.float32,
+            fp32_reduce_scatter=True,
         )
     else:
         strategy = "auto"
