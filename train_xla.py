@@ -84,6 +84,12 @@ from finetune.data.data_loader import Batch
 from finetune.loss import compute_loss_with_mask
 from finetune.monitoring.utils import set_logger
 
+import importlib
+import moshi.models.lm
+importlib.reload(moshi.models.lm)
+import moshi.models.loaders
+importlib.reload(moshi.models.loaders)
+
 logger = logging.getLogger("train")
 
 
