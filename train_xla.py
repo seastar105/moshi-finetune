@@ -12,6 +12,55 @@ from typing import (  # Added List, Tuple, Set
     Tuple,
     Union,
 )
+import torch.nn as nn
+from moshi.modules.transformer import create_norm_fn
+
+class ScaledEmbedding(nn.Embedding):
+    """Boost learning rate for embeddings (with `scale`).
+
+    Args:
+        norm (bool): if True, uses a layer norm after the embedding.
+        zero_idx (int): special value indicating that the output should be exactly 0.
+        low_rank (int | None): if provided, uses low rank embedding with a linear layer to reach
+            the desired dimension. Quite efficient for reducing the number of weights for very large vocabs.
+        lr (float or None): learning rate to use, only valid if the `make_optim_group()` method is used.
+    """
+
+    def __init__(self, num_embeddings: int, embedding_dim: int,
+                 *args, norm: bool = False, zero_idx: int = -1,
+                 low_rank: int | None = None, lr: float | None = None, **kwargs):
+        super().__init__(num_embeddings, low_rank or embedding_dim, *args, **kwargs)
+        self.norm = None
+        if norm:
+            self.norm = create_norm_fn("layer_norm", self.embedding_dim)
+        assert zero_idx < 0, "Please use negative values for the zero_idx."
+        self.zero_idx = zero_idx
+        self.lr = lr
+        self.low_rank = None
+        if low_rank is not None:
+            self.low_rank = nn.Linear(low_rank, embedding_dim, bias=False)
+
+    def forward(self, input, *args, **kwargs):
+        is_zero = input == self.zero_idx
+        
+        input = input.clamp(min=0)
+        y = super().forward(input, *args, **kwargs)
+        if self.norm is not None:
+            y = self.norm(y)
+        zero = torch.zeros(1, dtype=y.dtype, device=y.device)
+        y = torch.where(is_zero[..., None], zero, y)
+        if self.low_rank is not None:
+            y = self.low_rank(y)
+        return y
+
+    def make_optim_group(self) -> dict:
+        group: dict[str, Any] = {"params": list(self.parameters())}
+        if self.lr is not None:
+            group["lr"] = self.lr
+        return group
+import moshi.models.lm_utils as moshi_lm_utils
+# monkey patch to deal with Autograd Error, isDifferentiableType(variable.scalar_type())
+moshi_lm_utils.ScaledEmbedding = ScaledEmbedding
 
 import fire
 import lightning as L
