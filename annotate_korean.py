@@ -1,23 +1,14 @@
 import argparse
-import gc
 import importlib
 import json
 import logging
-import os
 import sys
 import time
-from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
-import sphn
-import submitit
-import torch
-import torchaudio.functional as F
-import whisper_timestamped as whisper
 import ray
 from audiotools import AudioSignal
-from faster_whisper import WhisperModel, BatchedInferencePipeline
+from faster_whisper import BatchedInferencePipeline, WhisperModel
 
 transcribe = importlib.import_module("whisper_timestamped.transcribe")
 old_get_vad_segments = transcribe.get_vad_segments
@@ -60,7 +51,7 @@ class AudioReader:
 
         if signal.sample_rate != SAMPLE_RATE:
             signal = signal.resample(SAMPLE_RATE)
-        
+
         return [
             {"audio": signal.audio_data[0, 0].squeeze().numpy(), "channel_idx": 0, "audio_path": audio_path},
             {"audio": signal.audio_data[0, 1].squeeze().numpy(), "channel_idx": 1, "audio_path": audio_path},
@@ -126,7 +117,7 @@ def main():
         data = data[:10]
     logger.info(f"Processing {len(data)} files.")
     data = ray.data.from_items(data).flat_map(AudioReader, concurrency=(1, 2)).flat_map(STTActor, concurrency=2, num_gpus=0.5)
-    path_to_results = dict()
+    path_to_results = {}
     for item in data.iter_rows():
         audio_path = item["audio_path"]
         if audio_path not in path_to_results:

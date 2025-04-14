@@ -1,14 +1,15 @@
+import argparse
+import json
+from functools import partial
+from pathlib import Path
+
 import torch
 import torch.nn as nn
-from transformers import AutoTokenizer
 from moshi.models import loaders
 from moshi.models.lm_utils import ScaledEmbedding
-import argparse
-from functools import partial
-from tqdm.auto import tqdm
 from safetensors.torch import save_file
-from pathlib import Path
-import json
+from tqdm.auto import tqdm
+from transformers import AutoTokenizer
 
 
 @torch.no_grad()

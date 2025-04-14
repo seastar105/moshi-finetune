@@ -6,27 +6,24 @@ from contextlib import ExitStack
 from pathlib import Path
 
 import fire
+import numpy as np
 import torch.cuda
 import torch.distributed as dist
-from moshi.models import loaders
-from torch.optim import AdamW, lr_scheduler, SGD
 from datasets import load_dataset
-import numpy as np
+from moshi.models import loaders
+from torch.optim import AdamW, lr_scheduler
 
 # from torch.profiler import ProfilerActivity, profile
 from finetune.args import TrainArgs
 from finetune.checkpointing import Checkpointer
-from finetune.data.data_loader import build_data_loader, Batch
-from finetune.data.interleaver import InterleavedTokenizer, Interleaver
+from finetune.data.data_loader import Batch
 from finetune.distributed import (
     BACKEND,
     avg_aggregate,
     get_rank,
-    get_world_size,
     is_torchrun,
     set_device,
 )
-from finetune.eval import evaluate
 from finetune.loss import compute_loss_with_mask
 from finetune.mixed_precision import (
     downcast_mixed_precision,
@@ -35,8 +32,6 @@ from finetune.mixed_precision import (
 )
 from finetune.monitoring.metrics_logger import (
     MetricsLogger,
-    eval_log_msg,
-    get_eval_logs,
     get_train_logs,
     train_log_msg,
 )
@@ -56,7 +51,7 @@ class PreComputedDataset:
 
     def __iter__(self):
         self.epoch += 1
-        indices = [i for i in range(len(self.dataset))]
+        indices = list(range(len(self.dataset)))
         rng = np.random.default_rng(self.epoch + self.seed)
         if self.shuffle:
             rng.shuffle(indices)
@@ -77,7 +72,7 @@ class PreComputedDataset:
                 codes = codes.T
                 yield torch.from_numpy(codes).long().view(1, -1, self.max_seq_len)
 
-            
+
 
 def main_logger_info(message: str) -> None:
     if get_rank() == 0:
@@ -352,19 +347,7 @@ def _train(args: TrainArgs, exit_stack: ExitStack):
         if args.do_eval and (
             (args.eval_freq > 0 and state.step % args.eval_freq == 0) or is_last_step
         ):
-            # write perplexity to state
-            evaluate(model, eval_data_loader, state, args)
-
-            eval_logs = get_eval_logs(
-                state.step,
-                avg_loss,
-                state.this_eval_perplexity,
-                state.this_eval_loss,
-            )
-
-            main_logger_info(eval_log_msg(eval_logs))
-            eval_logger.log(eval_logs, step=state.step)
-
+            raise NotImplementedError("Evaluation is not implemented yet.")
         # Timing
         state.end_step(n_batch_tokens)
 

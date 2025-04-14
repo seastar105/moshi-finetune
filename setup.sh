@@ -1,4 +1,6 @@
 pip install -U pip
+sudo apt update
+sudo apt install -y libopenblas-dev
 pip install -e .
 pip install datasets transformers hf_transfer
 pip install 'torch_xla[tpu]~=2.6.0' \

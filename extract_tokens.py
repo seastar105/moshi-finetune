@@ -1,24 +1,14 @@
 import argparse
-import gc
-import importlib
 import json
 import logging
-import os
+import math
 import sys
 import time
-from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 
-import sphn
-import submitit
-import torch
-import torchaudio.functional as F
-import whisper_timestamped as whisper
 import ray
+import torch
 from audiotools import AudioSignal
-from faster_whisper import WhisperModel, BatchedInferencePipeline
-import math
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +38,7 @@ class AudioReader:
 
         if signal.sample_rate != SAMPLE_RATE:
             signal = signal.resample(SAMPLE_RATE)
-        
+
         return [
             {"audio": signal.audio_data[0, 0].squeeze().numpy(), "channel_idx": 0, "audio_path": audio_path},
             {"audio": signal.audio_data[0, 1].squeeze().numpy(), "channel_idx": 1, "audio_path": audio_path},
@@ -71,15 +61,15 @@ class MimiActor:
         start = time.perf_counter()
         audio = item.pop("audio")
         duration = audio.shape[-1] / SAMPLE_RATE
-        code_length = int(math.ceil(duration * 12.5))
+        code_length = math.ceil(duration * 12.5)
         audio = torch.from_numpy(audio).to(device="cuda").unsqueeze(0).unsqueeze(0)
         sample_size = FRAME_SIZE * CHUNK_SIZE
-        
+
         rem = audio.shape[-1] % sample_size
         if rem:
             audio = torch.nn.functional.pad(audio, (0, sample_size - rem), mode="constant", value=0)
         all_codes = []
-        
+
         with torch.no_grad(), self.model.streaming(1):
             for offset in range(0, audio.shape[-1], sample_size):
                 frame = audio[..., offset:offset + sample_size]
@@ -96,8 +86,8 @@ class MimiActor:
             "channel_idx": item["channel_idx"],
             "codes": all_codes
         }]
-        
-                
+
+
 
 
 def main():
@@ -120,7 +110,7 @@ def main():
         data = data[:200]
     logger.info(f"Processing {len(data)} files.")
     data = ray.data.from_items(data).flat_map(AudioReader, concurrency=(1, 2)).flat_map(MimiActor, concurrency=2, num_gpus=0.5)
-    path_to_results = dict()
+    path_to_results = {}
     for item in data.iter_rows():
         audio_path = item["audio_path"]
         if audio_path not in path_to_results:
